@@ -7,35 +7,32 @@ import tkinter.scrolledtext
 from tkinter import simpledialog
 
 
-HOST = "127.0.0.1"
-PORT = 9090
-
-
 class Client:
     def __init__(self, host, port) -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
-
-        msg = tkinter.Tk()
-        msg.withdraw()
-
-        self.nick = simpledialog.askstring(
-            "Nickname", "Choose your nickname", parent=msg)
-
         self.gui_done = False
         self.running = True
 
-        gui_thread = threading.Thread(target=self.gui_loop)
-        receive_thread = threading.Thread(target=self.receive)
+    def run(self):
+        msg = tkinter.Tk()
+        msg.withdraw()
+        self.nick = simpledialog.askstring("Nick", "Choose nick", parent=msg)
 
+        gui_thread = threading.Thread(target=self.gui_create)
+        receive_thread = threading.Thread(target=self.receive)
         gui_thread.start()
         receive_thread.start()
 
-    def gui_loop(self):
+    def gui_create(self):
         self.win = tkinter.Tk()
         self.win.configure(bg="lightgray")
 
-        self.chat_label = tkinter.Label(self.win, text="Chat:", bg="lightgray")
+        self.quit_button = tkinter.Button(self.win, text="Quit", command=self.stop)
+        self.quit_button.config(font=("Arial", 12))
+        self.quit_button.pack()
+
+        self.chat_label = tkinter.Label(self.win, text=f"{self.nick}. Chat:", bg="lightgray")
         self.chat_label.config(font=("Arial", 12))
         self.chat_label.pack(padx=20, pady=5)
 
@@ -43,7 +40,7 @@ class Client:
         self.text_area.pack(padx=20, pady=5)
         self.text_area.config(state="disabled")
 
-        self.msg_label = tkinter.Label(self.win, text="Chat:", bg="lightgray")
+        self.msg_label = tkinter.Label(self.win, text="Message:", bg="lightgray")
         self.msg_label.config(font=("Arial", 12))
         self.msg_label.pack(padx=20, pady=5)
 
@@ -55,6 +52,8 @@ class Client:
         self.send_button.config(font=("Arial", 12))
         self.send_button.pack()
 
+        self.win.bind("<Return>", self.write)
+
         self.gui_done = True
 
         self.win.protocol("WM_DELETE_WINDOW", self.stop)
@@ -63,12 +62,13 @@ class Client:
 
     def stop(self):
         self.running = False
+        self.sock.send("Æ".encode("utf-8"))
         self.win.destroy()
         self.sock.close()
         exit(0)
 
-    def write(self):
-        message = f"{self.nick}: {self.input_area.get('1.0', 'end')}"
+    def write(self, e = None):
+        message = f"{self.nick}: {self.input_area.get('1.0', 'end')}".strip("\n")+"\n"
         self.sock.send(message.encode("utf-8"))
         self.input_area.delete("1.0", "end")
 
@@ -92,4 +92,5 @@ class Client:
 
 
 if __name__ == "__main__":
-    client = Client(HOST, PORT)
+    client = Client("127.0.0.1", 9090)
+    client.run()

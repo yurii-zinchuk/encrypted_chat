@@ -3,17 +3,13 @@
 import socket
 import threading
 
-HOST = "127.0.0.1"
-PORT = 9090
-
 
 class Server:
     def __init__(self, host, port) -> None:
         self.address = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.clients = []
-        self.nicks = []
+        self.clients = {}
 
     def broadcast(self, message):
         for client in self.clients:
@@ -25,10 +21,9 @@ class Server:
             print(f"Connected with {str(address)}.")
 
             client.send("NICK".encode("utf-8"))
-            nickname = client.recv(1024)
+            nickname = client.recv(1024).decode("utf-8")
 
-            self.nicks.append(nickname)
-            self.clients.append(client)
+            self.clients[client] = nickname
 
             print(f"Nickname of client: {nickname}")
             self.broadcast(f"{nickname} joined chat.\n".encode("utf-8"))
@@ -41,23 +36,21 @@ class Server:
         while True:
             try:
                 message = client.recv(1024)
-                print(f"{self.nicks[self.clients.index(client)]}")
+                decoded_msg = message.decode("utf-8")
+                if decoded_msg == "Æ":
+                    raise ConnectionAbortedError
                 self.broadcast(message)
             except:
-                index = self.clients.index(client)
-                self.clients.remove(client)
-                client.close()
-                nickname = self.nicks[index]
-                self.nicks.remove(nickname)
+                self.clients.pop(client)
                 break
 
     def run(self):
         self.sock.bind((self.address, self.port))
         self.sock.listen()
-        print("Server run...")
+        print("Server running...")
         self.receive()
 
 
 if __name__ == "__main__":
-    server = Server(HOST, PORT)
+    server = Server("127.0.0.1", 9090)
     server.run()
