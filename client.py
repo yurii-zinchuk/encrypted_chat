@@ -5,6 +5,7 @@ import threading
 import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
+import encryption.rsa as rsa
 
 
 class Client:
@@ -15,6 +16,20 @@ class Client:
         self.running = True
 
     def run(self):
+        (n, e), d = rsa.generate_keys()
+        self.public, self.secret = (n, e), d
+
+        # receive server public key
+        server_public = tuple(
+            map(lambda x: int(x), self.sock.recv(1024).decode().split("|"))
+        )
+
+        # send self keys to server
+        keys_str = (
+            (str(n)) + "|" + str(e) + "|" + rsa.rsa_encrypt(str(d), server_public)
+        )
+        self.sock.send(keys_str.encode())
+
         msg = tkinter.Tk()
         msg.withdraw()
         self.nick = simpledialog.askstring("Nick", "Choose nick", parent=msg)
@@ -32,7 +47,9 @@ class Client:
         self.quit_button.config(font=("Arial", 12))
         self.quit_button.pack()
 
-        self.chat_label = tkinter.Label(self.win, text=f"{self.nick}. Chat:", bg="lightgray")
+        self.chat_label = tkinter.Label(
+            self.win, text=f"{self.nick}. Chat:", bg="lightgray"
+        )
         self.chat_label.config(font=("Arial", 12))
         self.chat_label.pack(padx=20, pady=5)
 
@@ -47,8 +64,7 @@ class Client:
         self.input_area = tkinter.Text(self.win, height=3)
         self.input_area.pack(padx=20, pady=5)
 
-        self.send_button = tkinter.Button(
-            self.win, text="Send", command=self.write)
+        self.send_button = tkinter.Button(self.win, text="Send", command=self.write)
         self.send_button.config(font=("Arial", 12))
         self.send_button.pack()
 
@@ -67,21 +83,25 @@ class Client:
         self.sock.close()
         exit(0)
 
-    def write(self, e = None):
-        message = f"{self.nick}: {self.input_area.get('1.0', 'end')}".strip("\n")+"\n"
-        self.sock.send(message.encode("utf-8"))
+    def write(self, e=None):
+        message = f"{self.nick}: {self.input_area.get('1.0', 'end')}".strip("\n")
+        self.sock.send(rsa.rsa_encrypt(message, self.public).encode("utf-8"))
         self.input_area.delete("1.0", "end")
 
     def receive(self):
+        # картинку просто прийняти і зберегти в папку
         while self.running:
             try:
-                message = self.sock.recv(1024).decode("utf-8")
+                message = rsa.rsa_decrypt(
+                    self.sock.recv(1024).decode("utf-8"), self.secret, self.public
+                )
                 if message == "NICK":
-                    self.sock.send(self.nick.encode("utf-8"))
+                    encr_nick = rsa.rsa_encrypt(self.nick, self.public)
+                    self.sock.send(encr_nick.encode("utf-8"))
                 else:
                     if self.gui_done:
                         self.text_area.config(state="normal")
-                        self.text_area.insert("end", message)
+                        self.text_area.insert("end", message + "\n")
                         self.text_area.yview("end")
                         self.text_area.config(state="disabled")
             except ConnectionAbortedError:

@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import encryption.rsa as rsa
 
 
 class Server:
@@ -13,21 +14,38 @@ class Server:
 
     def broadcast(self, message):
         for client in self.clients:
-            client.send(message)
+            client.send(
+                rsa.rsa_encrypt(message, self.clients[client][1][0]).encode("utf-8")
+            )
 
     def receive(self):
+        # create keys
+        (n, e), d = rsa.generate_keys()
+        self.public, self.secret = (n, e), d
+        public_str = str(n) + "|" + str(e)
+
         while True:
             client, address = self.sock.accept()
             print(f"Connected with {str(address)}.")
 
-            client.send("NICK".encode("utf-8"))
-            nickname = client.recv(1024).decode("utf-8")
+            # send self public to client
+            client.send(public_str.encode())
 
-            self.clients[client] = nickname
+            # get encoded client keys
+            n, e, d = client.recv(1024).decode().split("|")
+
+            cli_public = int(n), int(e)
+            cli_secret = int(rsa.rsa_decrypt(d, self.secret, self.public))
+
+            client.send(rsa.rsa_encrypt("NICK", cli_public).encode("utf-8"))
+            nickname = rsa.rsa_decrypt(
+                client.recv(1024).decode("utf-8"), cli_secret, cli_public
+            )
+
+            self.clients[client] = nickname, (cli_public, cli_secret)
 
             print(f"Nickname of client: {nickname}")
-            self.broadcast(f"{nickname} joined chat.\n".encode("utf-8"))
-            client.send("Connected!".encode("utf-8"))
+            self.broadcast(f"{nickname} joined chat.")
 
             thread = threading.Thread(target=self.handle, args=(client,))
             thread.start()
@@ -35,10 +53,13 @@ class Server:
     def handle(self, client):
         while True:
             try:
-                message = client.recv(1024)
-                decoded_msg = message.decode("utf-8")
-                if decoded_msg == "Æ":
+                message = client.recv(1024).decode("utf-8")
+                if message == "Æ":
                     raise ConnectionAbortedError
+
+                message = rsa.rsa_decrypt(
+                    message, self.clients[client][1][1], self.clients[client][1][0]
+                )
                 self.broadcast(message)
             except:
                 self.clients.pop(client)
