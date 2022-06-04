@@ -162,7 +162,7 @@ def rsa_encrypt(msg: str, public: tuple[int]) -> str:
 
 def _into_blocks(msg: str) -> list[str]:
     """Return message as a list of blocks, each
-    consisting of 3 characters (9 digits).
+    consisting of 3 characters (6 digits).
     Last block has <= 3 characters.
 
     Args:
@@ -171,11 +171,11 @@ def _into_blocks(msg: str) -> list[str]:
     Returns:
         list[str]: List of blocks.
     """
-    i = 5
+    i = 3
     blocks = [NUMS_DICT[char] for char in msg]
     while i < len(blocks):
         blocks.insert(i, "*")
-        i += 6
+        i += 4
     blocks = "".join(blocks).split("*")
     return blocks
 
