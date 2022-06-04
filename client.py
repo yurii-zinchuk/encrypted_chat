@@ -9,13 +9,26 @@ import encryption.rsa as rsa
 
 
 class Client:
-    def __init__(self, host, port) -> None:
+    """
+    A class to represent a client.
+    """
+
+    def __init__(self, host: str, port: int) -> None:
+        """Create client object.
+
+        Args:
+            host (str): IP address of server to connect.
+            port (int): Port to connect to.
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
         self.gui_done = False
         self.running = True
 
-    def run(self):
+    def run(self) -> None:
+        """Initialize connection with server.
+        Exchange keys.
+        """
         (n, e), d = rsa.generate_keys()
         self.public, self.secret = (n, e), d
 
@@ -39,7 +52,8 @@ class Client:
         gui_thread.start()
         receive_thread.start()
 
-    def gui_create(self):
+    def gui_create(self) -> None:
+        """Create chat gui."""
         self.win = tkinter.Tk()
         self.win.configure(bg="lightgray")
 
@@ -76,19 +90,28 @@ class Client:
 
         self.win.mainloop()
 
-    def stop(self):
+    def stop(self) -> None:
+        """Stop client, when leaving chat."""
         self.running = False
         self.sock.send("Æ".encode("utf-8"))
         self.win.destroy()
         self.sock.close()
         exit(0)
 
-    def write(self, e=None):
+    def write(self, e=None) -> None:
+        """Write message and send to server.
+
+        Args:
+            e (optional): Defaults to None.
+        """
         message = f"{self.nick}: {self.input_area.get('1.0', 'end')}".strip("\n")
         self.sock.send(rsa.rsa_encrypt(message, self.public).encode("utf-8"))
         self.input_area.delete("1.0", "end")
 
-    def receive(self):
+    def receive(self) -> None:
+        """Receive message from server and print into gui.
+        Respond to server if requested nickname.
+        """
         # картинку просто прийняти і зберегти в папку
         while self.running:
             try:

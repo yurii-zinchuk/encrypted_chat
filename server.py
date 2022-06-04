@@ -2,23 +2,41 @@
 
 import socket
 import threading
+from client import Client
 import encryption.rsa as rsa
 
 
 class Server:
-    def __init__(self, host, port) -> None:
+    """
+    A class to represent server.
+    """
+
+    def __init__(self, host: str, port: int) -> None:
+        """Define server object.
+
+        Args:
+            host (str): IP address of host.
+            port (int): Port of connection.
+        """
         self.address = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clients = {}
 
-    def broadcast(self, message):
+    def broadcast(self, message: str) -> None:
+        """Send message to all users in the chat,
+        encode it with their key.
+
+        Args:
+            message (str): Message to send.
+        """
         for client in self.clients:
             client.send(
                 rsa.rsa_encrypt(message, self.clients[client][1][0]).encode("utf-8")
             )
 
-    def receive(self):
+    def receive(self) -> None:
+        """Receive connections from users, exchange keys."""
         # create keys
         (n, e), d = rsa.generate_keys()
         self.public, self.secret = (n, e), d
@@ -50,7 +68,16 @@ class Server:
             thread = threading.Thread(target=self.handle, args=(client,))
             thread.start()
 
-    def handle(self, client):
+    def handle(self, client: Client):
+        """Main server loop.
+        Receive and send messages between users.
+
+        Args:
+            client (Client): Client that sent the message.
+
+        Raises:
+            ConnectionAbortedError: If client left chat.
+        """
         while True:
             try:
                 message = client.recv(1024).decode("utf-8")
@@ -65,7 +92,8 @@ class Server:
                 self.clients.pop(client)
                 break
 
-    def run(self):
+    def run(self) -> None:
+        """Initialize and run server script."""
         self.sock.bind((self.address, self.port))
         self.sock.listen()
         print("Server running...")
