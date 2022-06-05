@@ -3,6 +3,11 @@
 This is final project of the discrete maths course. We had to develop a messenger that would allow users to chat securely without bothering that any of the exchanged information might be intercepted. Our chat uses RSA algorithms for encrypting messages that are being sent. It also has a nice GUI that makes it easy to use.
 
 ## Usage
+At first, make sure you have tkinter installed on your machine. If not, you will not be able to run client. To install it, run:
+```bash
+sudo pacman -S tk
+```
+
 To use the messenger, you will have to undertake several steps, once you have cloned the project and navigated to its directory in terminal on your machine.
 
 Firstly, you will have to set up the server, since our messenger runs on it. It is very easy to do:
