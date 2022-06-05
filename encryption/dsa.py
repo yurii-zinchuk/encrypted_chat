@@ -45,6 +45,25 @@ def DSA_check_signature(message, p, q, g, y, r, s):
     return v == r
 
 
+def encode(message):
+    p = 10091       # It should be bigger for better secure(e.g. 512 bit - 1024 bit) *prime number
+    q = 1009        # p = q*k + 1 (p is also prime)
+    for h in range(p):
+        if (h**((p-1)/q)) % p > 1:
+            g = int((h**((p-1)/q)) % p)
+            break
+    x = random.randint(0, q)  # private_key
+    y = (g**x) % p  # public_key
+    # the private key package is {p,q,g,x}.
+    # The public key package is {p,q,g,y}.
+    r, s = DSA_encode(message, p, q, g, x)
+    return message, (p, q, g, y, r, s)
+
+
+def check_signature(message_packet):
+    message, p, q, g, y, r, s = message_packet
+    if DSA_check_signature(message, p, q, g, y, r, s):
+        return message
 
 
 def DSA_example():
