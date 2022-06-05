@@ -87,6 +87,13 @@ def check_signature(message_packet):
 
 
 def DSA_example():
+    print('\n\n\n')
+    print("Hello, it's me, DSA! Now you will see how do I work in your example!")
+    for i in range(10):
+        print(f'\rwe will start in {10-i} ', end ='')
+        if i == 9:
+            print()
+        time.sleep(1)
     message = input('Please, type your message: ')
     for i in range(12):
         if i == 11:
